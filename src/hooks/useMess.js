@@ -1,6 +1,6 @@
 import { useMessContext } from '../context/MessContext';
 
-export function useMess() {
+const useMess = () => {
   const ctx = useMessContext();
   return ctx;
 }
