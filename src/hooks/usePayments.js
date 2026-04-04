@@ -4,7 +4,7 @@ import { validatePayment } from '../utils/validators';
 import { useToastContext } from '../context/ToastContext';
 import { useLanguageContext } from '../context/LanguageContext';
 
-export default function usePayments(messId) {
+const usePayments = (messId) => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const { success, error: showError } = useToastContext();
