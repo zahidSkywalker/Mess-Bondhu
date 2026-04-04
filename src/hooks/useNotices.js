@@ -179,3 +179,5 @@ export default function useNotices(messId) {
     togglePin,
   };
 }
+export { useNotices };
+export default useNotices;
