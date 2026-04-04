@@ -16,7 +16,7 @@ import { useLanguageContext } from '../context/LanguageContext';
  *   - resetToDefaults() to wipe settings back to DEFAULT_SETTINGS
  *   - refreshSettings() to re-read from DB
  */
-export default function useSettings() {
+const useSettings = () => {
   const [settings, setSettings] = useState({ ...DEFAULT_SETTINGS });
   const [loading, setLoading] = useState(true);
   const { success, error: showError } = useToastContext();
