@@ -158,7 +158,7 @@ export function timeAgo(dateStr, lang = 'bn') {
 /**
  * Get category display label by value and language.
  */
-import { EXPENSE_CATEGORIES } from './constants';
+
 
 export function getCategoryLabel(categoryValue, lang = 'bn') {
   const cat = EXPENSE_CATEGORIES.find((c) => c.value === categoryValue);
