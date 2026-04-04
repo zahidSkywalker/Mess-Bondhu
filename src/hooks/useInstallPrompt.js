@@ -97,3 +97,5 @@ export default function useInstallPrompt() {
     dismissInstall,
   };
 }
+export { useInstallPrompt };
+export default useInstallPrompt;
