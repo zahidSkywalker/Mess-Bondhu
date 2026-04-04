@@ -4,7 +4,7 @@ import { validateNotice } from '../utils/validators';
 import { useToastContext } from '../context/ToastContext';
 import { useLanguageContext } from '../context/LanguageContext';
 
-export default function useNotices(messId) {
+const useNotices = (messId) => {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(false);
   const { success, error: showError } = useToastContext();
