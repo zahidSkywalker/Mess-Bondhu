@@ -1,4 +1,5 @@
 import { CURRENCY, MONTHS_EN, MONTHS_BN, SHORT_MONTHS_EN, SHORT_MONTHS_BN } from './constants';
+import { EXPENSE_CATEGORIES } from './constants';  // <-- add this line
 
 /**
  * Format a number as Bangladeshi Taka currency string.
