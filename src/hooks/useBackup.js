@@ -161,3 +161,5 @@ export default function useBackup() {
     validateBackupFile,
   };
 }
+export { useBackup };
+export default useBackup;
