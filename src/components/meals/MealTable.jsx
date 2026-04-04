@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useLanguageContext } from '../../context/LanguageContext';
 import { toBengaliNum, getDaysInMonth } from '../../utils/formatters';
-import { DAYS_SHORT_BN, DAYS_SHORT_EN } from '../../utils/constants';
+import { DAYS_BN } from '../../utils/constants';
 
 /**
  * MealTable — Day × Member grid showing meal counts for a month.
@@ -22,10 +22,9 @@ export default function MealTable({
 }) {
   const { t, isBn } = useLanguageContext();
 
-  // ---- Build table data: array of { date, dayName, memberMeals[], total } ----
   const tableData = useMemo(() => {
     const daysInMonth = getDaysInMonth(year, month);
-    const days = isBn ? DAYS_SHORT_BN : DAYS_SHORT_EN;
+    const days = isBn ? DAYS_BN : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const rows = [];
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -33,15 +32,12 @@ export default function MealTable({
       const mm = String(month).padStart(2, '0');
       const dateStr = `${year}-${mm}-${dd}`;
 
-      // Day of week (0=Sun)
       const dayOfWeek = new Date(year, month - 1, d).getDay();
       const dayName = days[dayOfWeek];
       const isFriday = dayOfWeek === 5;
 
-      // Get meals for this date
       const dateMeals = mealsByDate[dateStr] || {};
 
-      // Build member meal array and total
       let dayTotal = 0;
       const memberMeals = activeMembers.map((member) => {
         const count = dateMeals[member.id] || 0;
@@ -62,12 +58,10 @@ export default function MealTable({
     return rows;
   }, [year, month, activeMembers, mealsByDate, isBn]);
 
-  // ---- Grand totals ----
   const grandTotal = useMemo(() => {
     return tableData.reduce((sum, row) => sum + row.total, 0);
   }, [tableData]);
 
-  // ---- Member-wise totals ----
   const memberTotals = useMemo(() => {
     return activeMembers.map((_, idx) => {
       return tableData.reduce((sum, row) => sum + (row.memberMeals[idx] || 0), 0);
@@ -101,12 +95,10 @@ export default function MealTable({
         <table className="data-table min-w-full">
           <thead>
             <tr className="bg-slate-50 dark:bg-slate-800/50">
-              {/* Date column */}
               <th className="w-20 sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 min-w-[80px]">
                 {t('label.date')}
               </th>
 
-              {/* Member columns */}
               {activeMembers.map((member) => (
                 <th key={member.id} className="min-w-[60px] text-center">
                   <span className="block truncate max-w-[80px] mx-auto" title={member.name}>
@@ -115,7 +107,6 @@ export default function MealTable({
                 </th>
               ))}
 
-              {/* Total column */}
               <th className="w-16 text-center sticky right-0 bg-slate-50 dark:bg-slate-800/50 z-10 min-w-[60px]">
                 {t('label.total')}
               </th>
@@ -131,7 +122,6 @@ export default function MealTable({
                   hover:bg-slate-50 dark:hover:bg-slate-800/30
                 `}
               >
-                {/* Date cell */}
                 <td className="sticky left-0 bg-white dark:bg-slate-800 z-10 whitespace-nowrap">
                   <span className={`text-xs font-medium ${row.isFriday ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
                     {row.dayName}
@@ -141,7 +131,6 @@ export default function MealTable({
                   </span>
                 </td>
 
-                {/* Member meal cells */}
                 {row.memberMeals.map((count, idx) => (
                   <td key={idx} className="text-center">
                     <span
@@ -158,7 +147,6 @@ export default function MealTable({
                   </td>
                 ))}
 
-                {/* Day total cell */}
                 <td className="text-center sticky right-0 bg-white dark:bg-slate-800 z-10">
                   <span
                     className={`
