@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useLanguageContext } from '../../context/LanguageContext';
 import { toBengaliNum, getDaysInMonth } from '../../utils/formatters';
-import { DAYS_SHORT_BN, DAYS_SHORT_EN } from '../../utils/constants';
+import { DAYS_BN } from '../../utils/constants';
 
 /**
  * MealCalendar — Month grid view showing daily meal totals.
@@ -22,42 +22,35 @@ export default function MealCalendar({
 }) {
   const { t, isBn } = useLanguageContext();
 
-  // ---- Calculate calendar grid ----
   const calendarDays = useMemo(() => {
     const daysInMonth = getDaysInMonth(year, month);
-    const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0=Sun
-    const days = isBn ? DAYS_SHORT_BN : DAYS_SHORT_EN;
+    const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
+    const days = isBn ? DAYS_BN : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    // Calculate cells: leading empty cells + day cells + trailing empty cells
     const cells = [];
 
-    // Leading empty cells for days before the 1st
     for (let i = 0; i < firstDayOfWeek; i++) {
       cells.push({ type: 'empty' });
     }
 
-    // Day cells
     for (let d = 1; d <= daysInMonth; d++) {
       const dd = String(d).padStart(2, '0');
       const mm = String(month).padStart(2, '0');
       const dateStr = `${year}-${mm}-${dd}`;
       const dayOfWeek = (firstDayOfWeek + d - 1) % 7;
 
-      // Calculate total meals for this date
       const dateMeals = mealsByDate[dateStr] || {};
       let totalMeals = 0;
       for (const count of Object.values(dateMeals)) {
         totalMeals += count;
       }
 
-      // Check if this is today
       const today = new Date();
       const isToday =
         d === today.getDate() &&
         month === today.getMonth() + 1 &&
         year === today.getFullYear();
 
-      // Check if highlighted
       const isHighlighted = dateStr === highlightDate;
 
       cells.push({
@@ -72,7 +65,6 @@ export default function MealCalendar({
       });
     }
 
-    // Trailing empty cells to complete the last row
     const remaining = cells.length % 7;
     if (remaining > 0) {
       for (let i = 0; i < 7 - remaining; i++) {
@@ -83,7 +75,6 @@ export default function MealCalendar({
     return { cells, days };
   }, [year, month, mealsByDate, isBn, highlightDate]);
 
-  // ---- Month total meals ----
   const monthTotal = useMemo(() => {
     let total = 0;
     for (const dayData of Object.values(mealsByDate)) {
@@ -94,7 +85,6 @@ export default function MealCalendar({
     return total;
   }, [mealsByDate]);
 
-  // ---- Get total days that have meals ----
   const daysWithMeals = useMemo(() => {
     return Object.keys(mealsByDate).filter((date) => {
       const meals = mealsByDate[date];
@@ -104,7 +94,6 @@ export default function MealCalendar({
 
   const { cells, days: dayNames } = calendarDays;
 
-  // ---- Color intensity based on meal count ----
   const getCellColor = (totalMeals) => {
     if (totalMeals === 0) return '';
     if (totalMeals <= 3) return 'bg-teal/10 text-teal-700 dark:text-teal-400';
@@ -170,7 +159,6 @@ export default function MealCalendar({
               `}
               disabled={!onDateClick}
             >
-              {/* Day number */}
               <span
                 className={`
                   text-sm font-semibold leading-none
@@ -181,7 +169,6 @@ export default function MealCalendar({
                 {isBn ? toBengaliNum(dayCell.dayNum) : dayCell.dayNum}
               </span>
 
-              {/* Meal count */}
               {dayCell.totalMeals > 0 && (
                 <span className="text-[10px] font-bold leading-none">
                   {isBn ? toBengaliNum(dayCell.totalMeals) : dayCell.totalMeals}
