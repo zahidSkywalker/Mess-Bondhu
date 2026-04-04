@@ -189,3 +189,5 @@ export default function useMembers(messId) {
     hardDeleteMember,
   };
 }
+export { useMembers };
+export default useMembers;
