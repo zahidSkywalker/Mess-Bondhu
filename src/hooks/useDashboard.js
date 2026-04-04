@@ -139,3 +139,5 @@ export default function useDashboard(messId) {
     invalidateCache,
   };
 }
+export { useDashboard };
+export default useDashboard;
