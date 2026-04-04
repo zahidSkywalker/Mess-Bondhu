@@ -172,8 +172,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.text(labels.summary, margin, yPos);
   yPos += 6;
 
-  doc.autoTable({
-    startY: yPos,
+  autoTable(doc, {
+  startY: yPos,
     margin: { left: margin, right: margin },
     body: [
       [labels.totalExpense, formatCurrency(summary.totalAllExpenses)],
@@ -240,8 +240,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     formatCurrency(summary.totalBalance),
   ]);
 
-  doc.autoTable({
-    startY: yPos,
+  autoTable(doc, {
+  startY: yPos,
     margin: { left: margin, right: margin },
     head: [memberHeaders],
     body: memberRows,
@@ -303,8 +303,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     num(expenseBreakdown.reduce((s, e) => s + e.count, 0)),
   ]);
 
-  doc.autoTable({
-    startY: yPos,
+  autoTable(doc, {
+  startY: yPos,
     margin: { left: margin, right: margin },
     head: [expHeaders],
     body: expRows,
@@ -391,8 +391,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   }
   mealColumnStyles[3 + memberCount] = { cellWidth: memberColWidth, halign: 'center', fontStyle: 'bold' };
 
-  doc.autoTable({
-    startY: yPos,
+  autoTable(doc, {
+  startY: yPos,
     margin: { left: margin, right: margin },
     head: [mealHeaders],
     body: mealRows,
