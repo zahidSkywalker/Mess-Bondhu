@@ -2,7 +2,7 @@
 export const EXPENSE_CATEGORIES = [
   { value: 'bazar', labelEn: 'Bazar (Grocery)', labelBn: 'বাজার' },
   { value: 'gas', labelEn: 'Gas', labelBn: 'গ্যাস' },
-  { value: 'electricity', labelEn: 'Electricity', labelEn: 'Electricity', labelBn: 'বিদ্যুৎ' },
+  { value: 'electricity', labelEn: 'Electricity', labelBn: 'বিদ্যুৎ' },
   { value: 'wifi', labelEn: 'WiFi / Internet', labelBn: 'ওয়াইফাই' },
   { value: 'water', labelEn: 'Water', labelBn: 'পানি' },
   { value: 'rent_maintenance', labelEn: 'Rent Maintenance', labelBn: 'রিপেয়ারিং' },
@@ -33,8 +33,8 @@ export const CURRENCY = {
 
 /** Default meal rate calculation mode */
 export const MEAL_RATE_MODE = {
-  STANDARD: 'standard', // total bazar / total meals
-  CUSTOM: 'custom',     // user-defined rate
+  STANDARD: 'standard',
+  CUSTOM: 'custom',
 };
 
 /** Months in order — index 0 = January */
@@ -62,6 +62,8 @@ export const SHORT_MONTHS_BN = [
 /** Days of the week */
 export const DAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const DAYS_BN = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
+export const DAYS_SHORT_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const DAYS_SHORT_BN = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
 export const DAYS_FULL_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 export const DAYS_FULL_BN = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
 
