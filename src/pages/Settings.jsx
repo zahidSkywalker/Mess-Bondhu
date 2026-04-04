@@ -10,7 +10,7 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import { validatePercentage, validate } from '../utils/validators';
+// Validators used inline — no import needed
 
 const DownloadIcon = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,26 +78,26 @@ export default function Settings() {
   }, []);
 
   // ---- Handle service charge save ----
-  const handleSaveSC = useCallback(() => {
-    const validation = validatePercentage(Number(serviceCharge), t('settings.serviceCharge'), t('settings.serviceCharge'));
-    if (!validation.valid) {
-      setScError(isBn ? validation.messageBn : validation.messageEn);
+    const handleSaveSC = useCallback(() => {
+    const value = Number(serviceCharge);
+    if (isNaN(value) || value < 0 || value > 100) {
+      setScError(isBn ? '০ থেকে ১০০ এর মধ্যে হতে হবে।' : 'Must be between 0 and 100.');
       return;
     }
     setScError('');
-    saveSetting('serviceChargePercent', Number(serviceCharge));
-  }, [serviceCharge, isBn, t, saveSetting]);
+    saveSetting('serviceChargePercent', value);
+  }, [serviceCharge, isBn, saveSetting]);
 
   // ---- Handle custom rate save ----
-  const handleSaveCR = useCallback(() => {
-    const validation = validate([validatePercentage(Number(customRate), t('settings.customRateValue'), t('settings.customRateValue'))]);
-    if (!validation.valid) {
-      setCrError(isBn ? validation.messageBn : validation.messageEn);
+    const handleSaveCR = useCallback(() => {
+    const value = Number(customRate);
+    if (isNaN(value) || value < 0 || value > 100) {
+      setCrError(isBn ? '০ থেকে ১০০ এর মধ্যে হতে হবে।' : 'Must be between 0 and 100.');
       return;
     }
     setCrError('');
-    saveSetting('customMealRate', Number(customRate));
-  }, [customRate, isBn, t, saveSetting]);
+    saveSetting('customMealRate', value);
+  }, [customRate, saveSetting]);
 
   // ---- Handle delete mess ----
   const handleDeleteConfirm = useCallback(async () => {
