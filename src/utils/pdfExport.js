@@ -37,13 +37,11 @@ async function tryFetchFont(urls) {
 async function loadBengaliFonts(doc) {
   try {
     const regularUrls = [
-      'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf',
-      'https://cdn.jsdelivr.net/gh/notofonts/bengali@main/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf',
+      'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf'
     ];
 
     const boldUrls = [
-      'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Bold.ttf',
-      'https://cdn.jsdelivr.net/gh/notofonts/bengali@main/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Bold.ttf',
+      'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Bold.ttf'
     ];
 
     const [regularBuffer, boldBuffer] = await Promise.all([
@@ -75,7 +73,6 @@ async function loadBengaliFonts(doc) {
    ============================================================ */
 
 export async function generatePDF(messId, year, month, messProfile, lang = 'bn') {
-  // ---- Load settings ----
   let serviceChargePercent = 0;
   let mealRateMode = 'standard';
   let customMealRate = 0;
@@ -84,7 +81,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     const keys = ['serviceChargePercent', 'mealRateMode', 'customMealRate'];
     for (const key of keys) {
       const row = await db.settings.where('key').equals(key).first();
-      settings[key] = row?.value ?? (key === 'serviceChargePercent' || key === 'customMealRate' ? 0 : 'standard');
+      settings[key] = row && row.value ? row.value : (key === 'serviceChargePercent' || key === 'customMealRate' ? 0 : 'standard');
     }
     serviceChargePercent = Number(settings.serviceChargePercent) || 0;
     mealRateMode = settings.mealRateMode || 'standard';
@@ -93,7 +90,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     console.error('Failed to load settings for PDF:', err);
   }
 
-  // ---- Calculate data ----
   const summary = await calculateMonthlySummary(messId, year, month, {
     serviceChargePercent,
     mealRateMode,
@@ -101,61 +97,61 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   });
 
   const expenseBreakdown = await getExpenseBreakdown(messId, year, month);
-  const { dateMap: mealDateMap, activeMembers } = await getDailyMealSummary(messId, year, month);
+  const dailyData = await getDailyMealSummary(messId, year, month);
+  const mealDateMap = dailyData.dateMap;
+  const activeMembers = dailyData.activeMembers;
 
-  // ---- Create PDF and load Bengali font ----
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const fontLoaded = await loadBengaliFonts(doc);
   const useBengali = fontLoaded && lang === 'bn';
 
-  // ---- Language helpers ----
-  const num = (n) => useBengali ? toBengaliNum(n) : String(n);
+  const num = function(n) { return useBengali ? toBengaliNum(n) : String(n); };
   const months = useBengali ? MONTHS_BN : MONTHS_EN;
   const days = useBengali ? DAYS_SHORT_BN : DAYS_SHORT_EN;
-  const monthLabel = `${months[month - 1]} ${num(year)}`;
+  const monthLabel = months[month - 1] + ' ' + num(year);
 
-  const labels = {
-    title: useBengali ? 'মাসিক মেস রিপোর্ট' : 'Monthly Mess Report',
-    period: useBengali ? 'সময়কাল' : 'Period',
-    messName: useBengali ? 'মেসের নাম' : 'Mess Name',
-    messAddress: useBengali ? 'ঠিকানা' : 'Address',
-    manager: useBengali ? 'ম্যানেজার' : 'Manager',
-    preparedOn: useBengali ? 'প্রস্তুতির তারিখ' : 'Prepared on',
-    summary: useBengali ? 'সারসংক্ষেপ' : 'Summary',
-    totalExpense: useBengali ? 'মোট খরচ' : 'Total Expense',
-    bazarCost: useBengali ? 'বাজার খরচ' : 'Bazar Cost',
-    otherExpense: useBengali ? 'অন্যান্য খরচ' : 'Other Expenses',
-    totalRent: useBengali ? 'মোট ভাড়া' : 'Total Rent',
-    totalMeals: useBengali ? 'মোট খাবার' : 'Total Meals',
-    mealRate: useBengali ? 'খাবারের রেট' : 'Meal Rate',
-    totalCollected: useBengali ? 'মোট আদায়' : 'Total Collected',
-    totalDue: useBengali ? 'মোট বাকি' : 'Total Due',
-    activeMembers: useBengali ? 'সক্রিয় সদস্য' : 'Active Members',
-    memberDetails: useBengali ? 'সদস্যের বিবরণ' : 'Member Details',
-    sl: useBengali ? 'ক্রম' : 'SL',
-    name: useBengali ? 'নাম' : 'Name',
-    meals: useBengali ? 'খাবার' : 'Meals',
-    mealCost: useBengali ? 'খাবারের খরচ' : 'Meal Cost',
-    rent: useBengali ? 'ভাড়া' : 'Rent',
-    sharedExpense: useBengali ? 'ভাগের খরচ' : 'Shared Exp.',
-    serviceCharge: useBengali ? 'সার্ভিস চার্জ' : 'S. Charge',
-    totalDueCol: useBengali ? 'মোট বাকি' : 'Total Due',
-    paid: useBengali ? 'পরিশোধ' : 'Paid',
-    balance: useBengali ? 'ব্যালেন্স' : 'Balance',
-    grandTotal: useBengali ? 'সর্বমোট' : 'Grand Total',
-    expenseDetails: useBengali ? 'খরচের বিবরণ' : 'Expense Details',
-    category: useBengali ? 'খাত' : 'Category',
-    amount: useBengali ? 'পরিমাণ' : 'Amount',
-    count: useBengali ? 'সংখ্যা' : 'Count',
-    mealDetails: useBengali ? 'খাবারের বিবরণ' : 'Meal Details',
-    date: useBengali ? 'তারিখ' : 'Date',
-    day: useBengali ? 'দিন' : 'Day',
-    managerSignature: useBengali ? 'ম্যানেজারের স্বাক্ষর' : 'Manager Signature',
-    page: useBengali ? 'পৃষ্ঠা' : 'Page',
+  var labels = {
+    title: useBengali ? '\u09AE\u09BE\u09B8\u09BF\u0995 \u09AE\u09C7\u09B8 \u09B0\u09BF\u09AA\u09CB\u09B0\u09CD\u099F' : 'Monthly Mess Report',
+    period: useBengali ? '\u09B8\u09AE\u09AF\u09BC\u0995\u09BE\u09B2' : 'Period',
+    messName: useBengali ? '\u09AE\u09C7\u09B8\u09C7\u09B0 \u09A8\u09BE\u09AE' : 'Mess Name',
+    messAddress: useBengali ? '\u09A0\u09BF\u0995\u09BE\u09A8\u09BE' : 'Address',
+    manager: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0' : 'Manager',
+    preparedOn: useBengali ? '\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u09B0 \u09A4\u09BE\u09B0\u09BF\u0996' : 'Prepared on',
+    summary: useBengali ? '\u09B8\u09BE\u09B0\u09B8\u0982\u0995\u09CD\u09B7\u09C7\u09AA' : 'Summary',
+    totalExpense: useBengali ? '\u09AE\u09CB\u099F \u0996\u09B0\u099A' : 'Total Expense',
+    bazarCost: useBengali ? '\u09AC\u09BE\u099C\u09BE\u09B0 \u0996\u09B0\u099A' : 'Bazar Cost',
+    otherExpense: useBengali ? '\u0985\u09A8\u09CD\u09AF\u09BE\u09A8\u09CD\u09AF \u0996\u09B0\u099A' : 'Other Expenses',
+    totalRent: useBengali ? '\u09AE\u09CB\u099F \u09AD\u09BE\u09A1\u09BC\u09BE' : 'Total Rent',
+    totalMeals: useBengali ? '\u09AE\u09CB\u099F \u0996\u09BE\u09AC\u09BE\u09B0' : 'Total Meals',
+    mealRate: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09B0\u09C7\u099F' : 'Meal Rate',
+    totalCollected: useBengali ? '\u09AE\u09CB\u099F \u0986\u09A6\u09BE\u09AF\u09BC' : 'Total Collected',
+    totalDue: useBengali ? '\u09AE\u09CB\u099F \u09AC\u09BE\u0995\u09BF' : 'Total Due',
+    activeMembers: useBengali ? '\u09B8\u0995\u09CD\u09B0\u09BF\u09AF\u09BC \u09B8\u09A6\u09B8\u09CD\u09AF' : 'Active Members',
+    memberDetails: useBengali ? '\u09B8\u09A6\u09B8\u09CD\u09AF\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Member Details',
+    sl: useBengali ? '\u0995\u09CD\u09B0\u09AE' : 'SL',
+    name: useBengali ? '\u09A8\u09BE\u09AE' : 'Name',
+    meals: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0' : 'Meals',
+    mealCost: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u0996\u09B0\u099A' : 'Meal Cost',
+    rent: useBengali ? '\u09AD\u09BE\u09A1\u09BC\u09BE' : 'Rent',
+    sharedExpense: useBengali ? '\u09AD\u09BE\u0997\u09C7\u09B0 \u0996\u09B0\u099A' : 'Shared Exp.',
+    serviceCharge: useBengali ? '\u09B8\u09BE\u09B0\u09CD\u09AD\u09BF\u09B8 \u099A\u09BE\u09B0\u09CD\u099C' : 'S. Charge',
+    totalDueCol: useBengali ? '\u09AE\u09CB\u099F \u09AC\u09BE\u0995\u09BF' : 'Total Due',
+    paid: useBengali ? '\u09AA\u09B0\u09BF\u09B6\u09CB\u09A7' : 'Paid',
+    balance: useBengali ? '\u09AC\u09CD\u09AF\u09BE\u09B2\u09C7\u09A8\u09CD\u09B8' : 'Balance',
+    grandTotal: useBengali ? '\u09B8\u09B0\u09CD\u09AC\u09AE\u09CB\u099F' : 'Grand Total',
+    expenseDetails: useBengali ? '\u0996\u09B0\u099A\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Expense Details',
+    category: useBengali ? '\u0996\u09BE\u09A4' : 'Category',
+    amount: useBengali ? '\u09AA\u09B0\u09BF\u09AE\u09BE\u09A3' : 'Amount',
+    count: useBengali ? '\u09B8\u0982\u0996\u09CD\u09AF\u09BE' : 'Count',
+    mealDetails: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Meal Details',
+    date: useBengali ? '\u09A4\u09BE\u09B0\u09BF\u0996' : 'Date',
+    day: useBengali ? '\u09A6\u09BF\u09A8' : 'Day',
+    managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u0995\u09CD\u09B7\u09B0' : 'Manager Signature',
+    page: useBengali ? '\u09AAৃ\u09B7\u09CD\u09A0\u09BE' : 'Page',
   };
 
-  // ---- Font helper ----
-  const setFont = (style = 'normal') => {
+  var setFont = function(style) {
+    style = style || 'normal';
     if (useBengali) {
       doc.setFont('NotoSansBengali', style);
     } else {
@@ -163,13 +159,13 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     }
   };
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  let yPos = margin;
+  var pageWidth = doc.internal.pageSize.getWidth();
+  var margin = 15;
+  var contentWidth = pageWidth - margin * 2;
+  var yPos = margin;
 
-  // ---- Helpers ----
-  const checkPageBreak = (neededHeight = 30) => {
+  var checkPageBreak = function(neededHeight) {
+    neededHeight = neededHeight || 30;
     if (yPos + neededHeight > doc.internal.pageSize.getHeight() - 20) {
       doc.addPage();
       yPos = margin;
@@ -178,19 +174,14 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     return false;
   };
 
-  const addFooter = () => {
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+  var addFooter = function() {
+    var pageCount = doc.internal.getNumberOfPages();
+    for (var i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       setFont('normal');
       doc.setFontSize(8);
       doc.setTextColor(130, 130, 130);
-      doc.text(
-        `${labels.page} ${num(i)} / ${num(pageCount)}`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
-      );
+      doc.text(labels.page + ' ' + num(i) + ' / ' + num(pageCount), pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
       doc.text('Mess Bondhu Pro', margin, doc.internal.pageSize.getHeight() - 10);
     }
   };
@@ -205,26 +196,26 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   setFont('normal');
   doc.setFontSize(11);
   doc.setTextColor(60, 60, 60);
-  doc.text(`${labels.period}: ${monthLabel}`, pageWidth / 2, yPos, { align: 'center' });
+  doc.text(labels.period + ': ' + monthLabel, pageWidth / 2, yPos, { align: 'center' });
   yPos += 10;
 
   doc.setFontSize(9);
   doc.setTextColor(40, 40, 40);
   if (messProfile) {
-    doc.text(`${labels.messName}: ${messProfile.name || '-'}`, margin, yPos);
+    doc.text(labels.messName + ': ' + (messProfile.name || '-'), margin, yPos);
     yPos += 5;
     if (messProfile.address) {
-      doc.text(`${labels.messAddress}: ${messProfile.address}`, margin, yPos);
+      doc.text(labels.messAddress + ': ' + messProfile.address, margin, yPos);
       yPos += 5;
     }
     if (messProfile.managerName) {
-      doc.text(`${labels.manager}: ${messProfile.managerName}`, margin, yPos);
+      doc.text(labels.manager + ': ' + messProfile.managerName, margin, yPos);
       yPos += 5;
     }
   }
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  doc.text(`${labels.preparedOn}: ${todayStr}`, margin, yPos);
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  doc.text(labels.preparedOn + ': ' + todayStr, margin, yPos);
   yPos += 8;
 
   doc.setDrawColor(200);
@@ -248,17 +239,13 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
       [labels.otherExpense, formatCurrency(summary.totalNonBazarCost)],
       [labels.totalRent, formatCurrency(summary.totalRent)],
       [labels.totalMeals, num(summary.totalMeals)],
-      [labels.mealRate, `৳${summary.mealRate}`],
+      [labels.mealRate, '\u09F3' + summary.mealRate],
       [labels.totalCollected, formatCurrency(summary.totalCollected)],
       [labels.totalDue, formatCurrency(Math.abs(summary.totalBalance))],
       [labels.activeMembers, num(summary.activeMemberCount)],
     ],
     theme: 'plain',
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-      textColor: [30, 30, 30],
-    },
+    styles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: contentWidth * 0.5 },
       1: { halign: 'right', cellWidth: contentWidth * 0.5 },
@@ -275,37 +262,31 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.text(labels.memberDetails, margin, yPos);
   yPos += 6;
 
-  const memberHeaders = [
-    labels.sl, labels.name, labels.meals, labels.mealCost,
-    labels.rent, labels.sharedExpense, labels.serviceCharge,
-    labels.totalDueCol, labels.paid, labels.balance,
-  ];
+  var memberHeaders = [labels.sl, labels.name, labels.meals, labels.mealCost, labels.rent, labels.sharedExpense, labels.serviceCharge, labels.totalDueCol, labels.paid, labels.balance];
 
-  const memberRows = summary.memberBreakdown.map((m, idx) => [
-    num(idx + 1),
-    m.memberName,
-    num(m.totalMeals),
-    formatCurrency(m.mealCost),
-    formatCurrency(m.rent),
-    formatCurrency(m.sharedExpense),
-    formatCurrency(m.serviceCharge),
-    formatCurrency(m.totalDue),
-    formatCurrency(m.totalPaid),
-    formatCurrency(m.balance),
-  ]);
+  var memberRows = summary.memberBreakdown.map(function(m, idx) {
+    return [num(idx + 1), m.memberName, num(m.totalMeals), formatCurrency(m.mealCost), formatCurrency(m.rent), formatCurrency(m.sharedExpense), formatCurrency(m.serviceCharge), formatCurrency(m.totalDue), formatCurrency(m.totalPaid), formatCurrency(m.balance)];
+  });
 
-  memberRows.push([
-    '',
-    labels.grandTotal,
-    num(summary.totalMeals),
-    formatCurrency(summary.memberBreakdown.reduce((s, m) => s + m.mealCost, 0)),
-    formatCurrency(summary.totalRent),
-    formatCurrency(summary.totalSharedExpenses),
-    formatCurrency(summary.totalServiceCharge),
-    formatCurrency(summary.totalDue),
-    formatCurrency(summary.totalCollected),
-    formatCurrency(summary.totalBalance),
-  ]);
+  var grandMealCost = 0;
+  var grandRent = 0;
+  var grandShared = 0;
+  var grandSC = 0;
+  var grandDue = 0;
+  var grandPaid = 0;
+  var grandBalance = 0;
+  for (var mi = 0; mi < summary.memberBreakdown.length; mi++) {
+    var mb = summary.memberBreakdown[mi];
+    grandMealCost += mb.mealCost;
+    grandRent += mb.rent;
+    grandShared += mb.sharedExpense;
+    grandSC += mb.serviceCharge;
+    grandDue += mb.totalDue;
+    grandPaid += mb.totalPaid;
+    grandBalance += mb.balance;
+  }
+
+  memberRows.push(['', labels.grandTotal, num(summary.totalMeals), formatCurrency(grandMealCost), formatCurrency(grandRent), formatCurrency(grandShared), formatCurrency(grandSC), formatCurrency(grandDue), formatCurrency(grandPaid), formatCurrency(grandBalance)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -313,18 +294,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     head: [memberHeaders],
     body: memberRows,
     theme: 'striped',
-    headStyles: {
-      fillColor: [34, 87, 122],
-      textColor: [255, 255, 255],
-      fontSize: 8,
-      fontStyle: 'bold',
-      cellPadding: 2.5,
-    },
-    bodyStyles: {
-      fontSize: 8,
-      cellPadding: 2.5,
-      textColor: [30, 30, 30],
-    },
+    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', cellPadding: 2.5 },
+    bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 30] },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 35 },
@@ -337,10 +308,10 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
       8: { cellWidth: 22, halign: 'right' },
       9: { cellWidth: 22, halign: 'right' },
     },
-    didParseCell: (data) => {
+    didParseCell: function(data) {
       if (data.row.index === memberRows.length - 1) {
         data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor: [235, 245, 255];
+        data.cell.styles.fillColor = [235, 245, 255];
       }
     },
   });
@@ -355,19 +326,20 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.text(labels.expenseDetails, margin, yPos);
   yPos += 6;
 
-  const expHeaders = [labels.sl, labels.category, labels.amount, labels.count];
-  const expRows = expenseBreakdown.map((e, idx) => {
-    const catDef = EXPENSE_CATEGORIES.find((c) => c.value === e.category);
-    const catLabel = catDef ? (useBengali ? catDef.labelBn : catDef.labelEn) : e.category;
+  var expHeaders = [labels.sl, labels.category, labels.amount, labels.count];
+  var expRows = expenseBreakdown.map(function(e, idx) {
+    var catDef = EXPENSE_CATEGORIES.find(function(c) { return c.value === e.category; });
+    var catLabel = catDef ? (useBengali ? catDef.labelBn : catDef.labelEn) : e.category;
     return [num(idx + 1), catLabel, formatCurrency(e.total), num(e.count)];
   });
 
-  expRows.push([
-    '',
-    labels.grandTotal,
-    formatCurrency(expenseBreakdown.reduce((s, e) => s + e.total, 0)),
-    num(expenseBreakdown.reduce((s, e) => s + e.count, 0)),
-  ]);
+  var expTotal = 0;
+  var expCount = 0;
+  for (var ei = 0; ei < expenseBreakdown.length; ei++) {
+    expTotal += expenseBreakdown[ei].total;
+    expCount += expenseBreakdown[ei].count;
+  }
+  expRows.push(['', labels.grandTotal, formatCurrency(expTotal), num(expCount)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -375,28 +347,18 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     head: [expHeaders],
     body: expRows,
     theme: 'striped',
-    headStyles: {
-      fillColor: [34, 87, 122],
-      textColor: [255, 255, 255],
-      fontSize: 9,
-      fontStyle: 'bold',
-      cellPadding: 3,
-    },
-    bodyStyles: {
-      fontSize: 9,
-      cellPadding: 3,
-      textColor: [30, 30, 30],
-    },
+    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', cellPadding: 3 },
+    bodyStyles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
     columnStyles: {
       0: { cellWidth: 12, halign: 'center' },
       1: { cellWidth: contentWidth * 0.45 },
       2: { cellWidth: contentWidth * 0.3, halign: 'right' },
       3: { cellWidth: contentWidth * 0.15, halign: 'center' },
     },
-    didParseCell: (data) => {
+    didParseCell: function(data) {
       if (data.row.index === expRows.length - 1) {
         data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor: [235, 245, 255];
+        data.cell.styles.fillColor = [235, 245, 255];
       }
     },
   });
@@ -411,21 +373,25 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.text(labels.mealDetails, margin, yPos);
   yPos += 6;
 
-  const daysInMonth = getDaysInMonth(year, month);
-  const mealHeaders = [labels.sl, labels.date, labels.day, ...activeMembers.map((m) => m.name), labels.totalDueCol];
-  const mealRows = [];
+  var daysInMonth = getDaysInMonth(year, month);
+  var mealHeadersArr = [labels.sl, labels.date, labels.day];
+  for (var ai = 0; ai < activeMembers.length; ai++) {
+    mealHeadersArr.push(activeMembers[ai].name);
+  }
+  mealHeadersArr.push(labels.totalDueCol);
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dd = String(d).padStart(2, '0');
-    const mm = String(month).padStart(2, '0');
-    const dateStr = `${year}-${mm}-${dd}`;
-    const dayOfWeek = new Date(year, month - 1, d).getDay();
+  var mealRows = [];
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dd = String(d).padStart(2, '0');
+    var mm = String(month).padStart(2, '0');
+    var dateStr = year + '-' + mm + '-' + dd;
+    var dayOfWeek = new Date(year, month - 1, d).getDay();
 
-    const row = [num(d), dateStr, days[dayOfWeek]];
-
-    let dayTotal = 0;
-    for (const member of activeMembers) {
-      const dayCount = mealDateMap[dateStr]?.[member.id] || 0;
+    var row = [num(d), dateStr, days[dayOfWeek]];
+    var dayTotal = 0;
+    for (var di = 0; di < activeMembers.length; di++) {
+      var member = activeMembers[di];
+      var dayCount = (mealDateMap[dateStr] && mealDateMap[dateStr][member.id]) ? mealDateMap[dateStr][member.id] : 0;
       row.push(num(dayCount));
       dayTotal += dayCount;
     }
@@ -433,44 +399,34 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     mealRows.push(row);
   }
 
-  const mealColumnStyles = {
+  var mealColumnStyles = {
     0: { cellWidth: 10, halign: 'center' },
     1: { cellWidth: 22 },
     2: { cellWidth: 12, halign: 'center' },
   };
-  const memberCount = activeMembers.length;
-  const remainingWidth = contentWidth - 44;
-  const memberColWidth = Math.max(12, (remainingWidth - 20) / (memberCount + 1));
-  for (let i = 0; i < memberCount; i++) {
-    mealColumnStyles[3 + i] = { cellWidth: memberColWidth, halign: 'center' };
+  var memberCount = activeMembers.length;
+  var remainingWidth = contentWidth - 44;
+  var memberColWidth = Math.max(12, (remainingWidth - 20) / (memberCount + 1));
+  for (var ci = 0; ci < memberCount; ci++) {
+    mealColumnStyles[3 + ci] = { cellWidth: memberColWidth, halign: 'center' };
   }
   mealColumnStyles[3 + memberCount] = { cellWidth: memberColWidth, halign: 'center', fontStyle: 'bold' };
 
   autoTable(doc, {
     startY: yPos,
     margin: { left: margin, right: margin },
-    head: [mealHeaders],
+    head: [mealHeadersArr],
     body: mealRows,
     theme: 'striped',
-    headStyles: {
-      fillColor: [34, 87, 122],
-      textColor: [255, 255, 255],
-      fontSize: 7,
-      fontStyle: 'bold',
-      cellPadding: 2,
-    },
-    bodyStyles: {
-      fontSize: 7,
-      cellPadding: 2,
-      textColor: [30, 30, 30],
-    },
+    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
+    bodyStyles: { fontSize: 7, cellPadding: 2, textColor: [30, 30, 30] },
     columnStyles: mealColumnStyles,
-    didParseCell: (data) => {
+    didParseCell: function(data) {
       if (data.section === 'body') {
-        const dateStr = data.row.raw[1];
-        if (dateStr) {
-          const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay();
-          if (dayOfWeek === 5) {
+        var dStr = data.row.raw[1];
+        if (dStr) {
+          var dow = new Date(dStr + 'T00:00:00').getDay();
+          if (dow === 5) {
             data.cell.styles.fillColor = [255, 251, 235];
           }
         }
@@ -480,7 +436,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
 
   yPos = doc.lastAutoTable.finalY + 12;
 
-  // ========== SIGNATURE LINE ==========
   checkPageBreak(20);
   doc.setDrawColor(100);
   doc.setLineWidth(0.3);
@@ -493,6 +448,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
 
   addFooter();
 
-  const filename = `mess-report-${year}-${String(month).padStart(2, '0')}.pdf`;
+  var filename = 'mess-report-' + year + '-' + String(month).padStart(2, '0') + '.pdf';
   doc.save(filename);
 }
