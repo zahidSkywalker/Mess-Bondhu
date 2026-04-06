@@ -1,6 +1,5 @@
 import { Component } from 'react';
 import Button from './Button';
-import { useLanguageContext } from '../../context/LanguageContext';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -28,7 +27,6 @@ export default class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      // Use a functional child pattern so we can access hooks inside the error UI
       return <ErrorFallback error={this.state.error} onRetry={this.handleRetry} onGoHome={this.handleGoHome} />;
     }
 
@@ -36,12 +34,7 @@ export default class ErrorBoundary extends Component {
   }
 }
 
-/**
- * Separate component for the error UI so we can use hooks.
- */
 function ErrorFallback({ error, onRetry, onGoHome }) {
-  const { t } = useLanguageContext();
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm text-center space-y-6">
@@ -57,15 +50,15 @@ function ErrorFallback({ error, onRetry, onGoHome }) {
         {/* Title */}
         <div>
           <h1 className="text-xl font-bold text-slate-800 dark:text-white">
-            {t('error.title')}
+            Something went wrong
           </h1>
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
-            {t('error.message')}
+            An unexpected error occurred. Please try refreshing the page.
           </p>
         </div>
 
         {/* Error details (dev mode only) */}
-        {process.env.NODE_ENV === 'development' && error && (
+        {typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development' && error && (
           <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-xl p-4 text-left">
             <p className="text-xs font-mono text-red-600 dark:text-red-400 break-all">
               {error.message}
@@ -81,10 +74,10 @@ function ErrorFallback({ error, onRetry, onGoHome }) {
         {/* Actions */}
         <div className="flex items-center justify-center gap-3">
           <Button variant="secondary" onClick={onRetry}>
-            {t('error.retry')}
+            Try Again
           </Button>
           <Button variant="primary" onClick={onGoHome}>
-            {t('error.goHome')}
+            Go to Dashboard
           </Button>
         </div>
       </div>
