@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { calculateMonthlySummary, getExpenseBreakdown, getDailyMealSummary } from './calculations';
 import db from '../db';
-import { formatCurrency, formatMonthKey, getDaysInMonth, toBengaliNum } from './formatters';
+import { formatCurrency, formatAmount, formatMonthKey, getDaysInMonth, toBengaliNum } from './formatters';
 import { DAYS_SHORT_BN, DAYS_SHORT_EN, MONTHS_BN, MONTHS_EN, EXPENSE_CATEGORIES } from './constants';
 
 /* ============================================================
@@ -101,7 +101,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   const mealDateMap = dailyData.dateMap;
   const activeMembers = dailyData.activeMembers;
 
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const fontLoaded = await loadBengaliFonts(doc);
   const useBengali = fontLoaded && lang === 'bn';
 
@@ -147,7 +147,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     date: useBengali ? '\u09A4\u09BE\u09B0\u09BF\u0996' : 'Date',
     day: useBengali ? '\u09A6\u09BF\u09A8' : 'Day',
     managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u0995\u09CD\u09B7\u09B0' : 'Manager Signature',
-    page: useBengali ? '\u09AAৃ\u09B7\u09CD\u09A0\u09BE' : 'Page',
+    page: useBengali ? '\u09AA\u09C3\u09B7\u09CD\u09A0\u09BE' : 'Page',
   };
 
   var setFont = function(style) {
@@ -265,7 +265,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var memberHeaders = [labels.sl, labels.name, labels.meals, labels.mealCost, labels.rent, labels.sharedExpense, labels.serviceCharge, labels.totalDueCol, labels.paid, labels.balance];
 
   var memberRows = summary.memberBreakdown.map(function(m, idx) {
-    return [num(idx + 1), m.memberName, num(m.totalMeals), formatCurrency(m.mealCost), formatCurrency(m.rent), formatCurrency(m.sharedExpense), formatCurrency(m.serviceCharge), formatCurrency(m.totalDue), formatCurrency(m.totalPaid), formatCurrency(m.balance)];
+    return [num(idx + 1), m.memberName, num(m.totalMeals), formatAmount(m.mealCost), formatAmount(m.rent), formatAmount(m.sharedExpense), formatAmount(m.serviceCharge), formatAmount(m.totalDue), formatAmount(m.totalPaid), formatAmount(m.balance)];
   });
 
   var grandMealCost = 0;
@@ -286,7 +286,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     grandBalance += mb.balance;
   }
 
-  memberRows.push(['', labels.grandTotal, num(summary.totalMeals), formatCurrency(grandMealCost), formatCurrency(grandRent), formatCurrency(grandShared), formatCurrency(grandSC), formatCurrency(grandDue), formatCurrency(grandPaid), formatCurrency(grandBalance)]);
+  memberRows.push(['', labels.grandTotal, num(summary.totalMeals), formatAmount(grandMealCost), formatAmount(grandRent), formatAmount(grandShared), formatAmount(grandSC), formatAmount(grandDue), formatAmount(grandPaid), formatAmount(grandBalance)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -298,15 +298,15 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 30] },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 15, halign: 'center' },
-      3: { cellWidth: 22, halign: 'right' },
-      4: { cellWidth: 20, halign: 'right' },
-      5: { cellWidth: 22, halign: 'right' },
-      6: { cellWidth: 20, halign: 'right' },
-      7: { cellWidth: 22, halign: 'right' },
-      8: { cellWidth: 22, halign: 'right' },
-      9: { cellWidth: 22, halign: 'right' },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 16, halign: 'center' },
+      3: { cellWidth: 26, halign: 'right' },
+      4: { cellWidth: 22, halign: 'right' },
+      5: { cellWidth: 26, halign: 'right' },
+      6: { cellWidth: 24, halign: 'right' },
+      7: { cellWidth: 30, halign: 'right' },
+      8: { cellWidth: 28, halign: 'right' },
+      9: { cellWidth: 30, halign: 'right' },
     },
     didParseCell: function(data) {
       if (data.row.index === memberRows.length - 1) {
@@ -330,7 +330,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var expRows = expenseBreakdown.map(function(e, idx) {
     var catDef = EXPENSE_CATEGORIES.find(function(c) { return c.value === e.category; });
     var catLabel = catDef ? (useBengali ? catDef.labelBn : catDef.labelEn) : e.category;
-    return [num(idx + 1), catLabel, formatCurrency(e.total), num(e.count)];
+    return [num(idx + 1), catLabel, formatAmount(e.total), num(e.count)];
   });
 
   var expTotal = 0;
@@ -339,7 +339,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     expTotal += expenseBreakdown[ei].total;
     expCount += expenseBreakdown[ei].count;
   }
-  expRows.push(['', labels.grandTotal, formatCurrency(expTotal), num(expCount)]);
+  expRows.push(['', labels.grandTotal, formatAmount(expTotal), num(expCount)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -402,15 +402,15 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var mealColumnStyles = {
     0: { cellWidth: 10, halign: 'center' },
     1: { cellWidth: 22 },
-    2: { cellWidth: 12, halign: 'center' },
+    2: { cellWidth: 14, halign: 'center' },
   };
   var memberCount = activeMembers.length;
-  var remainingWidth = contentWidth - 44;
-  var memberColWidth = Math.max(12, (remainingWidth - 20) / (memberCount + 1));
+  var remainingWidth = contentWidth - 46;
+  var memberColWidth = Math.max(12, (remainingWidth - 22) / (memberCount + 1));
   for (var ci = 0; ci < memberCount; ci++) {
     mealColumnStyles[3 + ci] = { cellWidth: memberColWidth, halign: 'center' };
   }
-  mealColumnStyles[3 + memberCount] = { cellWidth: memberColWidth, halign: 'center', fontStyle: 'bold' };
+  mealColumnStyles[3 + memberCount] = { cellWidth: 22, halign: 'center', fontStyle: 'bold' };
 
   autoTable(doc, {
     startY: yPos,
