@@ -16,8 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <MessProvider>
           <ThemeProvider>
             <LanguageProvider>
-              <ToastProvider />
-              <App />
+              <ToastProvider>
+                <App />
+              </ToastProvider>
             </LanguageProvider>
           </ThemeProvider>
         </MessProvider>
