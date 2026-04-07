@@ -161,6 +161,8 @@ const en = {
     mealRate: 'Meal Rate',
     mealRateCalculated: 'Calculated Rate',
     mealRateCustom: 'Custom Rate',
+    mealRateCustom: 'Custom Rate',
+    mealCost: 'Meal Cost',
     bazarDividedByMeals: 'Bazar Cost ÷ Total Meals',
     noMeals: 'No meals recorded',
     noMealsDesc: 'Start adding daily meal entries.',
