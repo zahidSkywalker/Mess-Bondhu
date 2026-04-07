@@ -1,14 +1,17 @@
 import { CURRENCY, MONTHS_EN, MONTHS_BN, SHORT_MONTHS_EN, SHORT_MONTHS_BN } from './constants';
-import { EXPENSE_CATEGORIES } from './constants';  // <-- add this line
+import { EXPENSE_CATEGORIES } from './constants';
 
 /**
  * Format a number as Bangladeshi Taka currency string.
- * Uses Intl.NumberFormat with 'en-BD' locale which handles
+ * Uses Intl.NumberFormat with 'en-IN' locale which handles
  * the Indian/Bangladeshi numbering system (e.g., 1,00,000).
+ * Automatically converts to Bengali digits when language is Bangla.
  */
 export function formatCurrency(amount, showSymbol = true) {
   if (amount === null || amount === undefined || isNaN(amount)) {
-    return showSymbol ? `${CURRENCY.symbol}0` : '0';
+    const zero = showSymbol ? `${CURRENCY.symbol}0` : '0';
+    const useBengali = document.documentElement.lang === 'bn';
+    return useBengali ? toBengaliNum(zero) : zero;
   }
 
   const num = Number(amount);
@@ -17,8 +20,11 @@ export function formatCurrency(amount, showSymbol = true) {
     maximumFractionDigits: 2,
   }).format(Math.abs(num));
 
+  const useBengali = document.documentElement.lang === 'bn';
+  const displayNum = useBengali ? toBengaliNum(formatted) : formatted;
+
   const prefix = num < 0 ? '-' : '';
-  return showSymbol ? `${prefix}${CURRENCY.symbol}${formatted}` : `${prefix}${formatted}`;
+  return showSymbol ? `${prefix}${CURRENCY.symbol}${displayNum}` : `${prefix}${displayNum}`;
 }
 
 /**
@@ -158,8 +164,6 @@ export function timeAgo(dateStr, lang = 'bn') {
 /**
  * Get category display label by value and language.
  */
-
-
 export function getCategoryLabel(categoryValue, lang = 'bn') {
   const cat = EXPENSE_CATEGORIES.find((c) => c.value === categoryValue);
   if (!cat) return categoryValue;
