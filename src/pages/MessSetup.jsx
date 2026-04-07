@@ -29,9 +29,11 @@ export default function MessSetup() {
       <div className="w-full max-w-md space-y-8">
         {/* Brand header */}
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-baltic mx-auto flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">MB</span>
-          </div>
+            <img
+            src="/icons/icon-512x512.png"
+            alt="Mess Bondhu Pro"
+            className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-lg object-cover"
+          />
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
             {t('app.name')}
           </h1>
