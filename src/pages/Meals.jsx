@@ -163,7 +163,21 @@ export default function Meals() {
           onTabChange={setViewMode}
           contentClassName=""
         />
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="btn-primary px-4 py-2 text-xs"
+          aria-label={t('meals.addMeal')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          {t('meals.addMeal')}
+        </button>
       </div>
+
+      <div className="fade-in" key={viewMode}>
 
       <div className="fade-in" key={viewMode}>
         {viewMode === 'table' ? (
@@ -185,60 +199,7 @@ export default function Meals() {
         )}
       </div>
 
-      {!addOpen && (
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className="fixed z-20 flex items-center justify-center rounded-2xl bg-baltic text-white hover:bg-baltic-600 active:scale-90 transition-transform duration-200 animate-meal-fab"
-          style={{
-            width: 56,
-            height: 56,
-            bottom: '5.25rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            boxShadow: '0 8px 25px rgba(34, 87, 122, 0.4), 0 0 0 0 rgba(34, 87, 122, 0.2)',
-          }}
-          aria-label={t('meals.addMeal')}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          <style>{`
-            @keyframes fab-float {
-              0%, 100% {
-                transform: translateX(-50%) translateY(0px);
-                box-shadow: 0 8px 25px rgba(34, 87, 122, 0.4), 0 0 0 0 rgba(34, 87, 122, 0.2);
-              }
-              50% {
-                transform: translateX(-50%) translateY(-6px);
-                box-shadow: 0 14px 35px rgba(34, 87, 122, 0.55), 0 0 0 12px rgba(34, 87, 122, 0.15);
-              }
-            }
-            .animate-meal-fab {
-              animation: fab-float 3s ease-in-out infinite;
-            }
-            @media (min-width: 768px) {
-              .animate-meal-fab {
-                bottom: 2rem !important;
-                left: auto !important;
-                right: 2rem !important;
-                transform: none !important;
-              }
-              @keyframes fab-float {
-                0%, 100% {
-                  transform: translateY(0px);
-                  box-shadow: 0 8px 25px rgba(34, 87, 122, 0.4), 0 0 0 0 rgba(34, 87, 122, 0.2);
-                }
-                50% {
-                  transform: translateY(-6px);
-                  box-shadow: 0 14px 35px rgba(34, 87, 122, 0.55), 0 0 0 12px rgba(34, 87, 122, 0.15);
-                }
-              }
-            }
-          `}</style>
-        </button>
-      )}
+
 
       <Modal
         isOpen={addOpen}
