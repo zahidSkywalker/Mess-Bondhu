@@ -2,29 +2,25 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { calculateMonthlySummary, getExpenseBreakdown, getDailyMealSummary } from './calculations';
 import db from '../db';
-import { formatCurrency, formatAmount, formatMonthKey, getDaysInMonth, toBengaliNum } from './formatters';
+import { formatAmount, formatMonthKey, getDaysInMonth, toBengaliNum } from './formatters';
 import { DAYS_SHORT_BN, DAYS_SHORT_EN, MONTHS_BN, MONTHS_EN, EXPENSE_CATEGORIES } from './constants';
 
-/* ============================================================
-   FONT LOADING HELPERS
-   ============================================================ */
-
 function arrayBufferToBase64(buffer) {
-  return new Promise((resolve, reject) => {
-    const blob = new Blob([buffer], { type: 'application/octet-stream' });
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
+  return new Promise(function(resolve, reject) {
+    var blob = new Blob([buffer], { type: 'application/octet-stream' });
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result.split(',')[1]); };
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
 }
 
 async function tryFetchFont(urls) {
-  for (const url of urls) {
+  for (var i = 0; i < urls.length; i++) {
     try {
-      const res = await fetch(url);
+      var res = await fetch(urls[i]);
       if (res.ok) {
-        const buffer = await res.arrayBuffer();
+        var buffer = await res.arrayBuffer();
         if (buffer.byteLength > 5000) return buffer;
       }
     } catch (e) {
@@ -36,31 +32,24 @@ async function tryFetchFont(urls) {
 
 async function loadBengaliFonts(doc) {
   try {
-    const regularUrls = [
+    var regularUrls = [
       'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Regular.ttf'
     ];
-
-    const boldUrls = [
+    var boldUrls = [
       'https://cdn.jsdelivr.net/gh/notofonts/bengali/fonts/NotoSansBengali/hinted/ttf/NotoSansBengali-Bold.ttf'
     ];
-
-    const [regularBuffer, boldBuffer] = await Promise.all([
-      tryFetchFont(regularUrls),
-      tryFetchFont(boldUrls),
-    ]);
-
+    var results = await Promise.all([tryFetchFont(regularUrls), tryFetchFont(boldUrls)]);
+    var regularBuffer = results[0];
+    var boldBuffer = results[1];
     if (!regularBuffer) return false;
-
-    const regularBase64 = await arrayBufferToBase64(regularBuffer);
+    var regularBase64 = await arrayBufferToBase64(regularBuffer);
     doc.addFileToVFS('NotoSansBengali-Regular.ttf', regularBase64);
     doc.addFont('NotoSansBengali-Regular.ttf', 'NotoSansBengali', 'normal');
-
     if (boldBuffer) {
-      const boldBase64 = await arrayBufferToBase64(boldBuffer);
+      var boldBase64 = await arrayBufferToBase64(boldBuffer);
       doc.addFileToVFS('NotoSansBengali-Bold.ttf', boldBase64);
-      doc.addFont('NotoSansBengali-Bold.ttf', 'NotoSansBengali', 'bold');
+      doc.addFont('NotoSansBengali-Bold.ttf', 'NotoBengali', 'bold');
     }
-
     return true;
   } catch (e) {
     console.warn('Bengali font loading failed:', e);
@@ -68,19 +57,15 @@ async function loadBengaliFonts(doc) {
   }
 }
 
-/* ============================================================
-   MAIN PDF GENERATION
-   ============================================================ */
-
 export async function generatePDF(messId, year, month, messProfile, lang = 'bn') {
-  let serviceChargePercent = 0;
-  let mealRateMode = 'standard';
-  let customMealRate = 0;
+  var serviceChargePercent = 0;
+  var mealRateMode = 'standard';
+  var customMealRate = 0;
   try {
-    const settings = {};
-    const keys = ['serviceChargePercent', 'mealRateMode', 'customMealRate'];
-    for (const key of keys) {
-      const row = await db.settings.where('key').equals(key).first();
+    var settings = {};
+    var keys = ['serviceChargePercent', 'mealRateMode', 'customMealRate'];
+    for (var key of keys) {
+      var row = await db.settings.where('key').equals(key).first();
       settings[key] = row && row.value ? row.value : (key === 'serviceChargePercent' || key === 'customMealRate' ? 0 : 'standard');
     }
     serviceChargePercent = Number(settings.serviceChargePercent) || 0;
@@ -90,64 +75,64 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     console.error('Failed to load settings for PDF:', err);
   }
 
-  const summary = await calculateMonthlySummary(messId, year, month, {
-    serviceChargePercent,
-    mealRateMode,
-    customMealRate,
+  var summary = await calculateMonthlySummary(messId, year, month, {
+    serviceChargePercent: serviceChargePercent,
+    mealRateMode: mealRateMode,
+    customMealRate: customMealRate,
   });
 
-  const expenseBreakdown = await getExpenseBreakdown(messId, year, month);
-  const dailyData = await getDailyMealSummary(messId, year, month);
-  const mealDateMap = dailyData.dateMap;
-  const activeMembers = dailyData.activeMembers;
+  var expenseBreakdown = await getExpenseBreakdown(messId, year, month);
+  var dailyData = await getDailyMealSummary(messId, year, month);
+  var mealDateMap = dailyData.dateMap;
+  var activeMembers = dailyData.activeMembers;
 
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const fontLoaded = await loadBengaliFonts(doc);
-  const useBengali = fontLoaded && lang === 'bn';
+  var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  var fontLoaded = await loadBengaliFonts(doc);
+  var useBengali = fontLoaded && lang === 'bn';
 
-  const num = function(n) { return useBengali ? toBengaliNum(n) : String(n); };
-  const months = useBengali ? MONTHS_BN : MONTHS_EN;
-  const days = useBengali ? DAYS_SHORT_BN : DAYS_SHORT_EN;
-  const monthLabel = months[month - 1] + ' ' + num(year);
+  var num = function(n) { return useBengali ? toBengaliNum(n) : String(n); };
+  var months = useBengali ? MONTHS_BN : MONTHS_EN;
+  var days = useBengali ? DAYS_SHORT_BN : DAYS_SHORT_EN;
+  var monthLabel = months[month - 1] + ' ' + num(year);
 
   var labels = {
-    title: useBengali ? '\u09AE\u09BE\u09B8\u09BF\u0995 \u09AE\u09C7\u09B8 \u09B0\u09BF\u09AA\u09CB\u09B0\u09CD\u099F' : 'Monthly Mess Report',
-    period: useBengali ? '\u09B8\u09AE\u09AF\u09BC\u0995\u09BE\u09B2' : 'Period',
-    messName: useBengali ? '\u09AE\u09C7\u09B8\u09C7\u09B0 \u09A8\u09BE\u09AE' : 'Mess Name',
+    title: useBengali ? '\u09AE\u09BE\u09B8\u09BF\u09BF\u0995 \u09AE\u09C7\u09B8 \u09B0\u09BF\u09AA\u09CB\u09B0\u09CD\u099F' : 'Monthly Mess Report',
+    period: useBengali ? '\u09B8\u09AE\u09AF\u09BC\u0995\u0995\u09BE\u09B2' : 'Period',
+    messName: useBengali ? '\u09AE\u09C7\u09B8\u09C7\u09B0\u09B0 \u09A8\u09BE\u09BE\u09AE' : 'Mess Name',
     messAddress: useBengali ? '\u09A0\u09BF\u0995\u09BE\u09A8\u09BE' : 'Address',
     manager: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0' : 'Manager',
-    preparedOn: useBengali ? '\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u09B0 \u09A4\u09BE\u09B0\u09BF\u0996' : 'Prepared on',
-    summary: useBengali ? '\u09B8\u09BE\u09B0\u09B8\u0982\u0995\u09CD\u09B7\u09C7\u09AA' : 'Summary',
-    totalExpense: useBengali ? '\u09AE\u09CB\u099F \u0996\u09B0\u099A' : 'Total Expense',
-    bazarCost: useBengali ? '\u09AC\u09BE\u099C\u09BE\u09B0 \u0996\u09B0\u099A' : 'Bazar Cost',
-    otherExpense: useBengali ? '\u0985\u09A8\u09CD\u09AF\u09BE\u09A8\u09CD\u09AF \u0996\u09B0\u099A' : 'Other Expenses',
+    preparedOn: useBengali ? '\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u099F\u09BF\u09B0\u09BF\u09B0\u09BF' : 'Prepared on',
+    summary: useBengali ? '\u09B8\u09BE\u09B0\u09B8\u0902\u0999\u0995\u09CD\u09B7\u09C7\u09AA' : 'Summary',
+    totalExpense: useBengali ? '\u09AE\u09CB\u099F \u0996\u09B0\u099A\u099A' : 'Total Expense',
+    bazarCost: useBengali ? '\u09AC\u09BE\u099C\u09BE\u09B0 \u0996\u09B0\u099A\u099A' : 'Bazar Cost',
+    otherExpense: useBengali ? '\u0985\u09A8\u09CD\u09AF\u09BE\u09A8\u09CD\u09AF \u0996\u09B0\u099A\u099A' : 'Other Expenses',
     totalRent: useBengali ? '\u09AE\u09CB\u099F \u09AD\u09BE\u09A1\u09BC\u09BE' : 'Total Rent',
-    totalMeals: useBengali ? '\u09AE\u09CB\u099F \u0996\u09BE\u09AC\u09BE\u09B0' : 'Total Meals',
+    totalMeals: useBengali ? '\u09AE\u09CB\u099F \u0996\u09BE\u09AC\u09BE\u09B0\u09BE\u09B0' : 'Total Meals',
     mealRate: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09B0\u09C7\u099F' : 'Meal Rate',
     totalCollected: useBengali ? '\u09AE\u09CB\u099F \u0986\u09A6\u09BE\u09AF\u09BC' : 'Total Collected',
     totalDue: useBengali ? '\u09AE\u09CB\u099F \u09AC\u09BE\u0995\u09BF' : 'Total Due',
-    activeMembers: useBengali ? '\u09B8\u0995\u09CD\u09B0\u09BF\u09AF\u09BC \u09B8\u09A6\u09B8\u09CD\u09AF' : 'Active Members',
-    memberDetails: useBengali ? '\u09B8\u09A6\u09B8\u09CD\u09AF\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Member Details',
+    activeMembers: useBengali ? '\u09B8\u0995\u09CD\u0995\u09BF\u09AF\u09BC \u09B8\u09A6\u09A6\u09CD\u09AF' : 'Active Members',
+    memberDetails: useBengali ? '\u09B8\u09A6\u09A6\u09CD\u09AF\u09C7\u09B0\u09B0\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0\u09B0' : 'Member Details',
     sl: useBengali ? '\u0995\u09CD\u09B0\u09AE' : 'SL',
-    name: useBengali ? '\u09A8\u09BE\u09AE' : 'Name',
-    meals: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0' : 'Meals',
-    mealCost: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u0996\u09B0\u099A' : 'Meal Cost',
+    name: useBengali ? '\u09A8\u09BE\u09BE\u09AE' : 'Name',
+    meals: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09BE\u09B0' : 'Meals',
+    mealCost: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09A6\u09BE\u09AE' : 'Meal Cost',
     rent: useBengali ? '\u09AD\u09BE\u09A1\u09BC\u09BE' : 'Rent',
-    sharedExpense: useBengali ? '\u09AD\u09BE\u0997\u09C7\u09B0 \u0996\u09B0\u099A' : 'Shared Exp.',
-    serviceCharge: useBengali ? '\u09B8\u09BE\u09B0\u09CD\u09AD\u09BF\u09B8 \u099A\u09BE\u09B0\u09CD\u099C' : 'S. Charge',
+    sharedExpense: useBengali ? '\u09AD\u09BE\u0997\u09C7\u09B0\u09C7\u09B0 \u0996\u09B0\u09B0\u099A\u099A' : 'Shared Exp.',
+    serviceCharge: useBengali ? '\u09B8\u09BE\u09B0\u09AD\u09BF\u09BF\u09B8 \u099A\u09BF\u09BE\u099C \u099A\u09BE\u09B0\u09CD\u099C' : 'S. Charge',
     totalDueCol: useBengali ? '\u09AE\u09CB\u099F \u09AC\u09BE\u0995\u09BF' : 'Total Due',
-    paid: useBengali ? '\u09AA\u09B0\u09BF\u09B6\u09CB\u09A7' : 'Paid',
+    paid: useBengali ? '\u09AA\u09B0\u09BF\u09BF\u09B6' : 'Paid',
     balance: useBengali ? '\u09AC\u09CD\u09AF\u09BE\u09B2\u09C7\u09A8\u09CD\u09B8' : 'Balance',
-    grandTotal: useBengali ? '\u09B8\u09B0\u09CD\u09AC\u09AE\u09CB\u099F' : 'Grand Total',
-    expenseDetails: useBengali ? '\u0996\u09B0\u099A\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Expense Details',
-    category: useBengali ? '\u0996\u09BE\u09A4' : 'Category',
-    amount: useBengali ? '\u09AA\u09B0\u09BF\u09AE\u09BE\u09A3' : 'Amount',
-    count: useBengali ? '\u09B8\u0982\u0996\u09CD\u09AF\u09BE' : 'Count',
-    mealDetails: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09AC\u09BF\u09AC\u09B0\u09A3' : 'Meal Details',
+    grandTotal: useBengali ? '\u09B8\u09B0\u09B0\u09AE\u09CB\u099F' : 'Grand Total',
+    expenseDetails: useBengali ? '\u0996\u09B0\u09B0\u099A\u099A\u09C7\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0' : 'Expense Details',
+    category: useBengali ? '\u0996\u09BE\u09BE\u09A4' : 'Category',
+    amount: useBengali ? '\u09AA\u09B0\u09BF\u09BF\u09AE\u09BE\u09A8' : 'Amount',
+    count: useBengali ? '\u09B8\u0902\u0996\u09CD\u09AF\u09CD\u09BE' : 'Count',
+    mealDetails: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0\u09B0\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0' : 'Meal Details',
     date: useBengali ? '\u09A4\u09BE\u09B0\u09BF\u0996' : 'Date',
     day: useBengali ? '\u09A6\u09BF\u09A8' : 'Day',
-    managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u0995\u09CD\u09B7\u09B0' : 'Manager Signature',
-    page: useBengali ? '\u09AA\u09C3\u09B7\u09CD\u09A0\u09BE' : 'Page',
+    managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09B0\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u0995\u09CB\u09B7\u09B0' : 'Manager Signature',
+    page: useBengali ? '\u09AA\u09C3\u09C3\u09C3\u09BE' : 'Page',
   };
 
   var setFont = function(style) {
@@ -163,6 +148,8 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var margin = 15;
   var contentWidth = pageWidth - margin * 2;
   var yPos = margin;
+
+  var fmtCur = function(amount) { return 'Tk ' + formatAmount(amount); };
 
   var checkPageBreak = function(neededHeight) {
     neededHeight = neededHeight || 30;
@@ -186,7 +173,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     }
   };
 
-  // ========== HEADER ==========
   setFont('bold');
   doc.setFontSize(16);
   doc.setTextColor(34, 87, 122);
@@ -223,7 +209,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 6;
 
-  // ========== SUMMARY TABLE ==========
   setFont('bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
@@ -234,14 +219,14 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     startY: yPos,
     margin: { left: margin, right: margin },
     body: [
-      [labels.totalExpense, formatCurrency(summary.totalAllExpenses)],
-      [labels.bazarCost, formatCurrency(summary.totalBazarCost)],
-      [labels.otherExpense, formatCurrency(summary.totalNonBazarCost)],
-      [labels.totalRent, formatCurrency(summary.totalRent)],
+      [labels.totalExpense, fmtCur(summary.totalAllExpenses)],
+      [labels.bazarCost, fmtCur(summary.totalBazarCost)],
+      [labels.otherExpense, fmtCur(summary.totalNonBazarCost)],
+      [labels.totalRent, fmtCur(summary.totalRent)],
       [labels.totalMeals, num(summary.totalMeals)],
-      [labels.mealRate, '\u09F3' + summary.mealRate],
-      [labels.totalCollected, formatCurrency(summary.totalCollected)],
-      [labels.totalDue, formatCurrency(Math.abs(summary.totalBalance))],
+      [labels.mealRate, 'Tk ' + summary.mealRate],
+      [labels.totalCollected, fmtCur(summary.totalCollected)],
+      [labels.totalDue, fmtCur(Math.abs(summary.totalBalance))],
       [labels.activeMembers, num(summary.activeMemberCount)],
     ],
     theme: 'plain',
@@ -255,7 +240,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(40);
 
-  // ========== MEMBER DETAILS TABLE ==========
   setFont('bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
@@ -265,7 +249,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var memberHeaders = [labels.sl, labels.name, labels.meals, labels.mealCost, labels.rent, labels.sharedExpense, labels.serviceCharge, labels.totalDueCol, labels.paid, labels.balance];
 
   var memberRows = summary.memberBreakdown.map(function(m, idx) {
-    return [num(idx + 1), m.memberName, num(m.totalMeals), formatAmount(m.mealCost), formatAmount(m.rent), formatAmount(m.sharedExpense), formatAmount(m.serviceCharge), formatAmount(m.totalDue), formatAmount(m.totalPaid), formatAmount(m.balance)];
+    return [num(idx + 1), m.memberName, num(m.totalMeals), fmtCur(m.mealCost), fmtCur(m.rent), fmtCur(m.sharedExpense), fmtCur(m.serviceCharge), fmtCur(m.totalDue), fmtCur(m.totalPaid), fmtCur(m.balance)];
   });
 
   var grandMealCost = 0;
@@ -286,7 +270,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     grandBalance += mb.balance;
   }
 
-  memberRows.push(['', labels.grandTotal, num(summary.totalMeals), formatAmount(grandMealCost), formatAmount(grandRent), formatAmount(grandShared), formatAmount(grandSC), formatAmount(grandDue), formatAmount(grandPaid), formatAmount(grandBalance)]);
+  memberRows.push(['', labels.grandTotal, num(summary.totalMeals), fmtCur(grandMealCost), fmtCur(grandRent), fmtCur(grandShared), fmtCur(grandSC), fmtCur(grandDue), fmtCur(grandPaid), fmtCur(grandBalance)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -319,7 +303,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(40);
 
-  // ========== EXPENSE BREAKDOWN TABLE ==========
   setFont('bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
@@ -330,7 +313,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var expRows = expenseBreakdown.map(function(e, idx) {
     var catDef = EXPENSE_CATEGORIES.find(function(c) { return c.value === e.category; });
     var catLabel = catDef ? (useBengali ? catDef.labelBn : catDef.labelEn) : e.category;
-    return [num(idx + 1), catLabel, formatAmount(e.total), num(e.count)];
+    return [num(idx + 1), catLabel, fmtCur(e.total), num(e.count)];
   });
 
   var expTotal = 0;
@@ -339,7 +322,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     expTotal += expenseBreakdown[ei].total;
     expCount += expenseBreakdown[ei].count;
   }
-  expRows.push(['', labels.grandTotal, formatAmount(expTotal), num(expCount)]);
+  expRows.push(['', labels.grandTotal, fmtCur(expTotal), num(expCount)]);
 
   autoTable(doc, {
     startY: yPos,
@@ -366,7 +349,6 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(30);
 
-  // ========== MEAL DETAILS TABLE ==========
   setFont('bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
