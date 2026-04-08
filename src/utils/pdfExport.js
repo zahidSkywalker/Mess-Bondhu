@@ -48,7 +48,7 @@ async function loadBengaliFonts(doc) {
     if (boldBuffer) {
       var boldBase64 = await arrayBufferToBase64(boldBuffer);
       doc.addFileToVFS('NotoSansBengali-Bold.ttf', boldBase64);
-      doc.addFont('NotoSansBengali-Bold.ttf', 'NotoBengali', 'bold');
+      doc.addFont('NotoSansBengali-Bold.ttf', 'NotoSansBengali', 'bold');
     }
     return true;
   } catch (e) {
@@ -89,6 +89,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   var fontLoaded = await loadBengaliFonts(doc);
   var useBengali = fontLoaded && lang === 'bn';
+  var activeFontName = useBengali ? 'NotoSansBengali' : 'helvetica';
 
   var num = function(n) { return useBengali ? toBengaliNum(n) : String(n); };
   var months = useBengali ? MONTHS_BN : MONTHS_EN;
@@ -96,12 +97,12 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   var monthLabel = months[month - 1] + ' ' + num(year);
 
   var labels = {
-    title: useBengali ? '\u09AE\u09BE\u09B8\u09BF\u09BF\u0995 \u09AE\u09C7\u09B8 \u09B0\u09BF\u09AA\u09CB\u09B0\u09CD\u099F' : 'Monthly Mess Report',
+    title: useBengali ? '\u09AE\u09BE\u09B8\u09BF\u09BF\u0995 \u09AE\u09C7\u09B8 \u09AE\u09C7\u09B8 \u09B0\u09BF\u09AA\u09CB\u09B0\u09CD\u099F' : 'Monthly Mess Report',
     period: useBengali ? '\u09B8\u09AE\u09AF\u09BC\u0995\u0995\u09BE\u09B2' : 'Period',
     messName: useBengali ? '\u09AE\u09C7\u09B8\u09C7\u09B0\u09B0 \u09A8\u09BE\u09BE\u09AE' : 'Mess Name',
     messAddress: useBengali ? '\u09A0\u09BF\u0995\u09BE\u09A8\u09BE' : 'Address',
     manager: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0' : 'Manager',
-    preparedOn: useBengali ? '\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u099F\u09BF\u09B0\u09BF\u09B0\u09BF' : 'Prepared on',
+    preparedOn: useBengali ? '\u09AA\u09CD\u09B0\u09B8\u09CD\u09A4\u09C1\u09A4\u09BF\u099F\u09BF\u09B0\u09BF' : 'Prepared on',
     summary: useBengali ? '\u09B8\u09BE\u09B0\u09B8\u0902\u0999\u0995\u09CD\u09B7\u09C7\u09AA' : 'Summary',
     totalExpense: useBengali ? '\u09AE\u09CB\u099F \u0996\u09B0\u099A\u099A' : 'Total Expense',
     bazarCost: useBengali ? '\u09AC\u09BE\u099C\u09BE\u09B0 \u0996\u09B0\u099A\u099A' : 'Bazar Cost',
@@ -118,20 +119,20 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     meals: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09BE\u09B0' : 'Meals',
     mealCost: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0 \u09A6\u09BE\u09AE' : 'Meal Cost',
     rent: useBengali ? '\u09AD\u09BE\u09A1\u09BC\u09BE' : 'Rent',
-    sharedExpense: useBengali ? '\u09AD\u09BE\u0997\u09C7\u09B0\u09C7\u09B0 \u0996\u09B0\u09B0\u099A\u099A' : 'Shared Exp.',
+    sharedExpense: useBengali ? '\u09AD\u09BE\u0997\u09C7\u09B0\u09C7\u09B0 \u0996\u09B0\u09B0\u09A9\u09A2' : 'Shared Exp.',
     serviceCharge: useBengali ? '\u09B8\u09BE\u09B0\u09AD\u09BF\u09BF\u09B8 \u099A\u09BF\u09BE\u099C \u099A\u09BE\u09B0\u09CD\u099C' : 'S. Charge',
     totalDueCol: useBengali ? '\u09AE\u09CB\u099F \u09AC\u09BE\u0995\u09BF' : 'Total Due',
     paid: useBengali ? '\u09AA\u09B0\u09BF\u09BF\u09B6' : 'Paid',
     balance: useBengali ? '\u09AC\u09CD\u09AF\u09BE\u09B2\u09C7\u09A8\u09CD\u09B8' : 'Balance',
     grandTotal: useBengali ? '\u09B8\u09B0\u09B0\u09AE\u09CB\u099F' : 'Grand Total',
-    expenseDetails: useBengali ? '\u0996\u09B0\u09B0\u099A\u099A\u09C7\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0' : 'Expense Details',
+    expenseDetails: useBengali ? '\u0996\u09B0\u09B0\u099A\u099C\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0' : 'Expense Details',
     category: useBengali ? '\u0996\u09BE\u09BE\u09A4' : 'Category',
-    amount: useBengali ? '\u09AA\u09B0\u09BF\u09BF\u09AE\u09BE\u09A8' : 'Amount',
+    amount: useBengali ? '\u09AA\u09B0\u09BF\u09BF\u09AE\u09A8\u09BE' : 'Amount',
     count: useBengali ? '\u09B8\u0902\u0996\u09CD\u09AF\u09CD\u09BE' : 'Count',
     mealDetails: useBengali ? '\u0996\u09BE\u09AC\u09BE\u09B0\u09C7\u09B0\u09B0\u09B0 \u09AC\u09BF\u09AC\u09BF\u09B0' : 'Meal Details',
     date: useBengali ? '\u09A4\u09BE\u09B0\u09BF\u0996' : 'Date',
     day: useBengali ? '\u09A6\u09BF\u09A8' : 'Day',
-    managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09B0\u09C7\u09B0 \u09B8\u09CD\u09AC\u09BE\u0995\u09CB\u09B7\u09B0' : 'Manager Signature',
+    managerSignature: useBengali ? '\u09AE\u09CD\u09AF\u09BE\u09A8\u09C7\u099C\u09BE\u09B0\u09B0\u09C7\u09B0\u09B8\u09CD\u09AC\u09BE\u0995\u09CB\u09B7\u09B0' : 'Manager Signature',
     page: useBengali ? '\u09AA\u09C3\u09C3\u09C3\u09BE' : 'Page',
   };
 
@@ -165,26 +166,28 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     var pageCount = doc.internal.getNumberOfPages();
     for (var i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      setFont('normal');
+      doc.setFont('NotoSansBengali', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(130, 130, 130);
       doc.text(labels.page + ' ' + num(i) + ' / ' + num(pageCount), pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      doc.setFont('NotoSansBengali', 'normal');
       doc.text('Mess Bondhu Pro', margin, doc.internal.pageSize.getHeight() - 10);
     }
   };
 
-  setFont('bold');
+  setFont('NotoSansBengali', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(34, 87, 122);
   doc.text(labels.title, pageWidth / 2, yPos, { align: 'center' });
   yPos += 8;
 
-  setFont('normal');
+  setFont('NotoSansBengali', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(60, 60, 60);
   doc.text(labels.period + ': ' + monthLabel, pageWidth / 2, yPos, { align: 'center' });
   yPos += 10;
 
+  setFont('NotoSansBengali', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(40, 40, 40);
   if (messProfile) {
@@ -209,7 +212,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 6;
 
-  setFont('bold');
+  setFont('NotoSansBengali', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
   doc.text(labels.summary, margin, yPos);
@@ -230,7 +233,12 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
       [labels.activeMembers, num(summary.activeMemberCount)],
     ],
     theme: 'plain',
-    styles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      textColor: [30, 30, 30],
+      font: activeFontName,
+    },
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: contentWidth * 0.5 },
       1: { halign: 'right', cellWidth: contentWidth * 0.5 },
@@ -240,7 +248,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(40);
 
-  setFont('bold');
+  setFont('NotoSansBengali', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
   doc.text(labels.memberDetails, margin, yPos);
@@ -278,8 +286,20 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     head: [memberHeaders],
     body: memberRows,
     theme: 'striped',
-    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', cellPadding: 2.5 },
-    bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [30, 30, 30] },
+    headStyles: {
+      fillColor: [34, 87, 122],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'bold',
+      cellPadding: 3,
+      font: activeFontName,
+    },
+    bodyStyles: {
+      fontSize: 8,
+      cellPadding: 2.5,
+      textColor: [30, 30, 30],
+      font: activeFontName,
+    },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
       1: { cellWidth: 40 },
@@ -303,7 +323,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(40);
 
-  setFont('bold');
+  setFont('NotoSansBengali', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
   doc.text(labels.expenseDetails, margin, yPos);
@@ -330,8 +350,20 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     head: [expHeaders],
     body: expRows,
     theme: 'striped',
-    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', cellPadding: 3 },
-    bodyStyles: { fontSize: 9, cellPadding: 3, textColor: [30, 30, 30] },
+    headStyles: {
+      fillColor: [34, 87, 122],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'bold',
+      cellPadding: 3,
+      font: activeFontName,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      cellPadding: 3,
+      textColor: [30, 30, 30],
+      font: activeFontName,
+    },
     columnStyles: {
       0: { cellWidth: 12, halign: 'center' },
       1: { cellWidth: contentWidth * 0.45 },
@@ -349,7 +381,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   yPos = doc.lastAutoTable.finalY + 8;
   checkPageBreak(30);
 
-  setFont('bold');
+  setFont('NotoSansBengali', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(34, 87, 122);
   doc.text(labels.mealDetails, margin, yPos);
@@ -400,8 +432,20 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
     head: [mealHeadersArr],
     body: mealRows,
     theme: 'striped',
-    headStyles: { fillColor: [34, 87, 122], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 2 },
-    bodyStyles: { fontSize: 7, cellPadding: 2, textColor: [30, 30, 30] },
+    headStyles: {
+      fillColor: [34, 87, 122],
+      textColor: [255, 255, 255],
+      fontSize: 7,
+      fontStyle: 'bold',
+      cellPadding: 2,
+      font: activeFontName,
+    },
+    bodyStyles: {
+      fontSize: 7,
+      cellPadding: 2,
+      textColor: [30, 30, 30],
+      font: activeFontName,
+    },
     columnStyles: mealColumnStyles,
     didParseCell: function(data) {
       if (data.section === 'body') {
@@ -423,7 +467,7 @@ export async function generatePDF(messId, year, month, messProfile, lang = 'bn')
   doc.setLineWidth(0.3);
   doc.line(pageWidth - margin - 60, yPos, pageWidth - margin, yPos);
   yPos += 4;
-  setFont('normal');
+  setFont('NotoSansBengali', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.text(labels.managerSignature, pageWidth - margin - 60, yPos);
