@@ -11,7 +11,7 @@ const useMeals = (messId) => {
   const { t } = useLanguageContext();
 
   const getLang = useCallback(() => {
-    return t('app.name') === 'মেস বন্ধু প্রো' ? 'bn' : 'en';
+    return t('app.name') === 'মেস বন্ধু' ? 'bn' : 'en';
   }, [t]);
 
   const fetchMeals = useCallback(async (year, month) => {
