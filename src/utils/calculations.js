@@ -145,7 +145,12 @@ export async function calculateMealRate(messId, year, month) {
  *   - customMealRate: if provided, overrides calculated meal rate
  *   - mealRateMode: 'standard' | 'custom'
  *
- * Returns array of member breakdown objects sorted by name.
+ * Returns {
+ *   memberBreakdown: [...],
+ *   totalBazarCost,
+ *   totalNonBazarCost,
+ *   totalAllExpenses
+ * }
  */
 export async function calculateMemberDues(messId, year, month, options = {}) {
   const {
@@ -162,7 +167,7 @@ export async function calculateMemberDues(messId, year, month, options = {}) {
 
   const memberCount = activeMembers.length;
 
-  // ---- Aggregate expense totals ----
+  // ---- Aggregate expense totals from raw expense data ----
   const totalBazarCost = expenses
     .filter((e) => e.category === 'bazar')
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
@@ -237,7 +242,12 @@ export async function calculateMemberDues(messId, year, month, options = {}) {
   // Sort alphabetically by name
   breakdown.sort((a, b) => a.memberName.localeCompare(b.memberName));
 
-  return breakdown;
+  return {
+    memberBreakdown: breakdown,
+    totalBazarCost: round2(totalBazarCost),
+    totalNonBazarCost: round2(totalNonBazarCost),
+    totalAllExpenses,
+  };
 }
 
 /**
@@ -252,8 +262,8 @@ export async function calculateMemberDues(messId, year, month, options = {}) {
  * or a zeroed object if member is not found/active.
  */
 export async function calculateSingleMemberDue(messId, memberId, year, month, options = {}) {
-  const allDues = await calculateMemberDues(messId, year, month, options);
-  const found = allDues.find((d) => d.memberId === memberId);
+  const result = await calculateMemberDues(messId, year, month, options);
+  const found = result.memberBreakdown.find((d) => d.memberId === memberId);
 
   if (found) return found;
 
@@ -301,12 +311,17 @@ export async function calculateMonthlySummary(messId, year, month, options = {})
     mealRateMode = 'standard',
   } = options;
 
-  const memberBreakdown = await calculateMemberDues(
+  const duesResult = await calculateMemberDues(
     messId,
     year,
     month,
     options
   );
+
+  const memberBreakdown = duesResult.memberBreakdown;
+  const totalBazarCost = duesResult.totalBazarCost;
+  const totalNonBazarCost = duesResult.totalNonBazarCost;
+  const totalAllExpenses = duesResult.totalAllExpenses;
 
   const activeMemberCount = memberBreakdown.length;
 
@@ -326,11 +341,6 @@ export async function calculateMonthlySummary(messId, year, month, options = {})
   const totalDue = memberBreakdown.reduce((s, m) => s + m.totalDue, 0);
   const totalCollected = memberBreakdown.reduce((s, m) => s + m.totalPaid, 0);
   const totalBalance = memberBreakdown.reduce((s, m) => s + m.balance, 0);
-
-  // ---- Expense totals (from breakdown, recomposed for clarity) ----
-  const totalBazarCost = round2(totalMealCost); // mealCost = meals × mealRate, and mealRate = bazar/totalMeals
-  const totalNonBazarCost = round2(totalSharedExpenses * activeMemberCount);
-  const totalAllExpenses = round2(totalBazarCost + totalNonBazarCost);
 
   // ---- Manager calculations ----
   const managerServiceCharge = round2(
