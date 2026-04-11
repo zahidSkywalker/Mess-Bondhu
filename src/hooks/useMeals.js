@@ -177,33 +177,22 @@ const useMeals = (messId) => {
     const map = {};
     for (const meal of meals) {
       if (!map[meal.date]) map[meal.date] = {};
-      map[meal.date][meal.memberId] = Number(mealCount) || 0;
+      map[meal.date][meal.memberId] = Number(meal.mealCount) || 0;
     }
     return map;
   }, [meals]);
 
   const totalMealCount = meals.reduce((sum, m) => sum + (Number(m.mealCount) || 0), 0);
 
-  /* ------------------------------------------------------------------
-   * quickSetMealCount — The core of the new UX.
-   *
-   * Sets a single member's meal count for a specific date.
-   * If count is 0, deletes the row entirely (clean DB, no zero-rows).
-   * If count > 0, either updates the existing row or inserts a new one.
-   *
-   * This powers the +/- buttons on the member cards.
-   * ------------------------------------------------------------------ */
   const quickSetMealCount = useCallback(async (memberId, dateStr, count) => {
     if (!messId || !dateStr) return { success: false };
 
     try {
       if (count === 0) {
-        // Delete all meal rows for this member on this date
         await db.meals
           .where({ messId, memberId, date: dateStr })
           .delete();
       } else {
-        // Find existing meal row for this member on this date
         const existing = await db.meals
           .where({ messId, memberId, date: dateStr })
           .first();
@@ -221,7 +210,6 @@ const useMeals = (messId) => {
         }
       }
 
-      // Re-fetch to keep state in sync
       const mm = String(new Date(dateStr + 'T00:00:00').getMonth() + 1;
       const yyyy = new Date(dateStr + 'T00:00:00').getFullYear();
       await fetchMeals(yyyy, mm);
