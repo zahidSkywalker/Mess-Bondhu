@@ -17,6 +17,10 @@ const useDashboard = (messId) => {
   const cacheRef = useRef({});
   const computingRef = useRef(false);
 
+  // Store settings for exposing to components
+  const [mealRateMode, setMealRateMode] = useState('standard');
+  const [customMealRate, setCustomMealRate] = useState(0);
+
   // ---- Load settings for service charge and meal rate mode ----
   const loadSettings = useCallback(async () => {
     try {
@@ -60,6 +64,8 @@ const useDashboard = (messId) => {
     try {
       setLoading(true);
       const settings = await loadSettings();
+      setMealRateMode(settings.mealRateMode || 'standard');
+      setCustomMealRate(Number(settings.customMealRate) || 0);
       const data = await calculateMonthlySummary(messId, year, month, settings);
       const pl = calculateProfitLoss(data, settings.serviceChargePercent);
 
@@ -137,6 +143,8 @@ const useDashboard = (messId) => {
     goToMonth,
     refresh,
     invalidateCache,
+    mealRateMode,
+    customMealRate,
   };
 }
 export { useDashboard };
