@@ -60,8 +60,10 @@ const MealRateIcon = (
  * Props:
  *   summary: object from calculateMonthlySummary
  *   monthKey: string "YYYY-MM"
+ *   mealRateMode: string 'standard' | 'custom'
+ *   customMealRate: number
  */
-export default function MonthlyOverview({ summary, monthKey }) {
+export default function MonthlyOverview({ summary, monthKey, mealRateMode = 'standard', customMealRate = 0 }) {
   const { t, isBn } = useLanguageContext();
 
   if (!summary) {
@@ -77,10 +79,10 @@ export default function MonthlyOverview({ summary, monthKey }) {
   }
 
   const monthLabel = formatMonthKey(monthKey, isBn ? 'bn' : 'en');
+  const isCustomMode = mealRateMode === 'custom' && customMealRate > 0;
 
   // ---- Build back-face content for each card ----
 
-  // Sorted copies of memberBreakdown for back faces
   const byMeals = useMemo(() =>
     [...summary.memberBreakdown].sort((a, b) => b.totalMeals - a.totalMeals).slice(0, 5),
     [summary.memberBreakdown]
@@ -205,22 +207,44 @@ export default function MonthlyOverview({ summary, monthKey }) {
       <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
         {isBn ? 'হিসাব' : 'Calculation'}
       </p>
-      <div className="flex justify-between text-xs">
-        <span className="text-slate-500 dark:text-slate-400">{t('expenses.bazar')}</span>
-        <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(summary.totalBazarCost)}</span>
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-slate-500 dark:text-slate-400">{t('dashboard.totalMeals')}</span>
-        <span className="font-medium text-slate-700 dark:text-slate-200">{isBn ? toBengaliNum(summary.totalMeals) : summary.totalMeals}</span>
-      </div>
-      <div className="rounded-lg bg-slate-100 dark:bg-slate-700/50 px-2.5 py-2 mt-1">
-        <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
-          {formatCurrency(summary.totalBazarCost)} ÷ {isBn ? toBengaliNum(summary.totalMeals) : summary.totalMeals}
-        </p>
-        <p className="text-sm font-bold text-center text-slate-800 dark:text-white mt-0.5">
-          = ৳{summary.mealRate}
-        </p>
-      </div>
+      {isCustomMode ? (
+        <>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">{t('settings.mealRateMode')}</span>
+            <span className="font-medium text-amber-600 dark:text-amber-400">{t('settings.customRate')}</span>
+          </div>
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 px-2.5 py-2.5 mt-1">
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center font-medium">
+              {isBn ? 'ফিক্সড রেট' : 'Fixed Rate'}
+            </p>
+            <p className="text-lg font-bold text-center text-amber-700 dark:text-amber-300 mt-0.5">
+              ৳{customMealRate}
+            </p>
+            <p className="text-[10px] text-amber-500 dark:text-amber-500 text-center mt-0.5">
+              {isBn ? 'প্রতি খাবারের জন্য' : 'per meal'}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">{t('expenses.bazar')}</span>
+            <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(summary.totalBazarCost)}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-500 dark:text-slate-400">{t('dashboard.totalMeals')}</span>
+            <span className="font-medium text-slate-700 dark:text-slate-200">{isBn ? toBengaliNum(summary.totalMeals) : summary.totalMeals}</span>
+          </div>
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-700/50 px-2.5 py-2 mt-1">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 text-center">
+              {formatCurrency(summary.totalBazarCost)} ÷ {isBn ? toBengaliNum(summary.totalMeals) : summary.totalMeals}
+            </p>
+            <p className="text-sm font-bold text-center text-slate-800 dark:text-white mt-0.5">
+              = ৳{summary.mealRate}
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -274,7 +298,9 @@ export default function MonthlyOverview({ summary, monthKey }) {
       value: `৳${summary.mealRate}`,
       icon: MealRateIcon,
       color: 'amber',
-      subtitle: t('meals.bazarDividedByMeals'),
+      subtitle: isCustomMode
+        ? (isBn ? 'ফিক্সড রেট' : 'Fixed Rate')
+        : t('meals.bazarDividedByMeals'),
       backContent: mealRateBack,
     },
   ];
