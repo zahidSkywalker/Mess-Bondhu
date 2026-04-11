@@ -210,7 +210,7 @@ const useMeals = (messId) => {
         }
       }
 
-      const mm = String(new Date(dateStr + 'T00:00:00').getMonth() + 1;
+      const mm = String(new Date(dateStr + 'T00:00:00').getMonth() + 1);
       const yyyy = new Date(dateStr + 'T00:00:00').getFullYear();
       await fetchMeals(yyyy, mm);
 
